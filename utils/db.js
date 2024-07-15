@@ -1,34 +1,34 @@
-const { MongoClient } = require('mongodb');
-
-const host = process.env.DB_HOST || 'localhost';
-const port = process.env.DB_PORT || 27017;
-const database = process.env.DB_DATABASE || 'files_manager';
-const url = `mongodb://${host}:${port}`;
+import { MongoClient } from 'mongodb';
 
 class DBClient {
   constructor() {
-    MongoClient.connect(url, (err, client) => {
-      if (!err) {
-        this.db = client.db(database);
-      } else {
-        this.db = false;
-      }
-    });
+    this.host = process.env.DB_HOST || 'localhost';
+    this.port = process.env.DB_PORT || 27017;
+    this.database = process.env.DB_DATABASE || 'files_manager';
+    this.client = new MongoClient(`mongodb://${this.host}:${this.port}`, { useUnifiedTopology: true });
+    this.client.connect();
+    this.db = this.client.db(this.database);
   }
 
   isAlive() {
-    if (this.db) return true;
+    if (this.client.isConnected()) {
+      return true;
+    }
     return false;
   }
 
   async nbUsers() {
-    return this.db.collection('users').countDocuments();
+    this.db = this.client.db(this.database);
+    const collection = await this.db.collection('users');
+    return collection.countDocuments();
   }
 
   async nbFiles() {
-    return this.db.collection('files').countDocuments();
+    this.db = this.client.db(this.database);
+    const collection = await this.db.collection('files');
+    return collection.countDocuments();
   }
 }
 
 const dbClient = new DBClient();
-export default dbClient;
+module.exports = dbClient;
